@@ -5,6 +5,8 @@ from data.dataset_store import  get_df
 from executor.python_exec import execute_python
 from openai import OpenAI
 import os
+import json
+
 
 DATABRICKS_TOKEN = os.getenv("DATABRICKS_TOKEN")
 
@@ -18,8 +20,51 @@ class AgentState(TypedDict):
     code : str
     result: str
     retries: int
+    original_language: str
 
-#Node-1 : Generate Code
+#NODE -1
+def normalize_query(state: AgentState) -> AgentState:
+    question = state["question"]
+
+    prompt = f"""
+    You are a multilingual data analyst assistant.
+
+    Your job:
+    1. Detect the language of the user query
+    2. Convert it into a clear English data analysis question
+    3. Keep the meaning EXACT
+
+    Return JSON ONLY:
+    {{
+        "language": "<detected language>",
+        "english_query": "<clean English version>"
+    }}
+
+    User Query: 
+    {question}
+    """
+
+    response = client.chat.completions.create(
+        model="databricks-claude-sonnet-4-6",
+        messages=[
+            {"role": "system", "content": "You are a multilingual assistant."},
+            {"role": "user", "content": prompt}
+        ],
+        temperature=0
+    )
+
+    content = response.choices[0].message.content
+
+    try:
+        data = json.loads(content)
+        state["question"] = data["english_query"]   # overwrite question
+        state["original_language"] = data["language"]
+    except:
+        state["original_language"] = "English"
+
+    return state
+
+#Node-2: Generate Code
 def generate_code(state: AgentState) -> AgentState:
     question = state['question']
     df = get_df()
@@ -79,7 +124,7 @@ def generate_code(state: AgentState) -> AgentState:
     print(state['code'])
     return state
 
-#Node-2 : Execute Code
+#Node-3: Execute Code
 def execute_code(state: AgentState) -> AgentState:
     code = state['code']
     result = execute_python(code)
@@ -88,7 +133,7 @@ def execute_code(state: AgentState) -> AgentState:
     return state
 
 
-#Node-3: Explain Result
+#Node-4 Explain Result
 def explain_result(state: AgentState) -> AgentState:
     question = state['question']
     code = state['code']
@@ -112,7 +157,7 @@ def explain_result(state: AgentState) -> AgentState:
     state['result'] = response.choices[0].message.content
     return state
 
-#Node -4 : check for errors and decide next step
+#Node -5: check for errors and decide next step
 def check_error(state: AgentState):
     previous_error=""
     result = state["result"]
@@ -128,13 +173,14 @@ def check_error(state: AgentState):
 
 builder = StateGraph(AgentState)
 
+builder.add_node("normalize_query", normalize_query)
 builder.add_node("generate_code", generate_code)
 builder.add_node("execute_code", execute_code)
 builder.add_node("explain_result", explain_result)
 
-builder.set_entry_point("generate_code")
+builder.set_entry_point("normalize_query")
 
-
+builder.add_edge("normalize_query", "generate_code")
 builder.add_edge("generate_code", "execute_code")
 builder.add_conditional_edges(
     "execute_code",
