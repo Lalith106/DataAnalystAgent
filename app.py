@@ -2,6 +2,8 @@ import streamlit as st
 import pandas as pd
 from agent.graph import graph
 from data.dataset_store import set_df, clear_df
+import base64
+import re
 
 
 st.set_page_config(
@@ -103,6 +105,11 @@ if "chat_history" not in st.session_state:
 if "file_uploaded" not in st.session_state:
     st.session_state.file_uploaded = False
 
+
+def safe_filename(text: str, default: str = "chart") -> str:
+    slug = re.sub(r"[^a-zA-Z0-9]+", "_", text).strip("_").lower()
+    return slug[:60] if slug else default
+
 def data_quality_report(df):
     st.markdown("### 📊 Data Quality Report")
 
@@ -181,20 +188,76 @@ question = st.chat_input("💬 Ask Questions About Your Data")
 if question and st.session_state.file_uploaded:
     result = graph.invoke({"question": question})
     answer = result["result"]
+    is_visualization = result.get("is_visualization", False)
+    visualization_data = result.get("visualization_data", "")
+
+    image_bytes = None
+    if is_visualization and visualization_data:
+        try:
+            image_bytes = base64.b64decode(visualization_data)
+        except Exception as e:
+            print(f"[DEBUG] Failed to decode visualization image: {e}")
+
+    download_name = f"{safe_filename(question)}.png"
+    
+    # Debug logging
+    print(f"[DEBUG] is_visualization: {is_visualization}")
+    print(f"[DEBUG] visualization_data length: {len(visualization_data) if visualization_data else 0}")
+    print(f"[DEBUG] answer: {answer[:100] if answer else 'None'}")
 
     # Save to history
     st.session_state.chat_history.append({
         "question": question,
-        "answer": answer
+        "answer": answer,
+        "is_visualization": is_visualization,
+        "visualization_data": visualization_data,
+        "visualization_bytes": image_bytes,
+        "download_name": download_name,
     })
 
-for chat in st.session_state.chat_history:
+for idx, chat in enumerate(st.session_state.chat_history):
 
     with st.chat_message("user"):
         st.write(chat["question"])
 
     with st.chat_message("assistant"):
-        st.write(chat["answer"])
+        is_viz = chat.get("is_visualization", False)
+        viz_bytes = chat.get("visualization_bytes")
+        download_name = chat.get("download_name", "chart.png")
+
+        if is_viz and viz_bytes:
+            try:
+                st.markdown("#### 📊 Generated Visualization")
+                st.image(viz_bytes, use_container_width=True, caption="Generated chart")
+                st.download_button(
+                    label="⬇️ Download chart as PNG",
+                    data=viz_bytes,
+                    file_name=download_name,
+                    mime="image/png",
+                    key=f"download_{idx}",
+                )
+            except Exception as e:
+                st.warning(f"⚠️ Could not display image: {str(e)}")
+
+            st.markdown(
+                f"""
+                <div style='\
+                    margin-top: 0.75rem;\
+                    padding: 0.9rem 1rem;\
+                    border-radius: 12px;\
+                    background: rgba(255,255,255,0.82);\
+                    border: 1px solid rgba(56, 189, 248, 0.35);\
+                    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);\
+                    color: #0f172a;\
+                '>
+                    <strong style='color:#0c4a6e;'>Insight summary</strong><br>
+                    {chat["answer"]}
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+        else:
+            st.write(chat["answer"])
 
 
 # -------- Clear Button --------
