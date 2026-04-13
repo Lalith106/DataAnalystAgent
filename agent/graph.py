@@ -12,7 +12,7 @@ import json
 w= WorkspaceClient()
 #DATABRICKS_TOKEN =dbutils.get(scope="my_secrets",key="DATABRICKS_TOKEN")
 #DATABRICKS_TOKEN = os.getenv("DATABRICKS_TOKEN")
-ENDPOINT_NAME = "databricks-claude-sonnet-4-6"
+ENDPOINT_NAME = "Llama 4 Maverick"
 
 # client = OpenAI(
 #     api_key= DATABRICKS_TOKEN,
