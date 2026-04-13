@@ -11,6 +11,12 @@ st.set_page_config(
     page_icon="📊",
 )
 
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = []
+
+if "file_uploaded" not in st.session_state:
+    st.session_state.file_uploaded = False
+
 st.markdown("""
 <style>
 
@@ -97,13 +103,6 @@ margin-bottom:20px;
 </div>
 """, unsafe_allow_html=True)
 
-
-
-if "chat_history" not in st.session_state:
-    st.session_state.chat_history = []
-
-if "file_uploaded" not in st.session_state:
-    st.session_state.file_uploaded = False
 
 
 def safe_filename(text: str, default: str = "chart") -> str:
@@ -215,7 +214,7 @@ if question and st.session_state.file_uploaded:
         "download_name": download_name,
     })
 
-for idx, chat in enumerate(st.session_state.chat_history):
+for idx, chat in enumerate(st.session_state.chat_history,[]):
 
     with st.chat_message("user"):
         st.write(chat["question"])
