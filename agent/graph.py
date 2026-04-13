@@ -5,10 +5,16 @@ from data.dataset_store import  get_df
 from executor.python_exec import execute_python
 from openai import OpenAI
 import os
+from pyspark.dbutils import DBUtils
+from pyspark.sql import SparkSession
 import json
 
 
-DATABRICKS_TOKEN = os.getenv("DATABRICKS_TOKEN")
+spark = SparkSession.builder.getOrCreate()
+dbutils = DBUtils(spark)
+
+DATABRICKS_TOKEN =dbutils.get(scope="my_secrets",key="DATABRICKS_TOKEN")
+#DATABRICKS_TOKEN = os.getenv("DATABRICKS_TOKEN")
 
 client = OpenAI(
     api_key= DATABRICKS_TOKEN,
