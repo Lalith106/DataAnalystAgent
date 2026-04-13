@@ -214,7 +214,7 @@ if question and st.session_state.file_uploaded:
         "download_name": download_name,
     })
 
-for idx, chat in enumerate(st.session_state.chat_history,[]):
+for idx, chat in enumerate(st.session_state.chat_history):
 
     with st.chat_message("user"):
         st.write(chat["question"])
