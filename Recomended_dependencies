@@ -1,0 +1,37 @@
+# UI
+streamlit==1.32.0
+
+# Core data
+numpy==1.26.4
+pandas==2.1.4
+
+# ML / stats
+scikit-learn==1.3.2
+scipy==1.11.4
+
+# Visualization
+matplotlib==3.8.4
+seaborn==0.13.0
+
+# LLM / AI
+openai==1.30.0
+tiktoken==0.7.0
+
+# LangChain ecosystem (stable versions)
+langchain==0.1.20
+langchain-community==0.0.38
+langchain-core==0.1.52
+
+# Databricks integration (minimal)
+databricks-sdk==0.31.0
+
+# API (only if you use FastAPI)
+fastapi==0.110.0
+uvicorn==0.29.0
+
+# Utilities
+requests==2.31.0
+python-dotenv==1.0.1
+
+# Pydantic (required by FastAPI + LangChain)
+pydantic==2.6.4
