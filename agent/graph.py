@@ -1,25 +1,23 @@
 from typing import TypedDict
 from langgraph.graph import END, StateGraph
+from databricks.sdk import Workspaceclient
 #from app import is_visualization
 from data.dataset_store import  get_df
 from executor.python_exec import execute_python
 from openai import OpenAI
 import os
-from pyspark.dbutils import DBUtils
-from pyspark.sql import SparkSession
 import json
 
 
-spark = SparkSession.builder.getOrCreate()
-dbutils = DBUtils(spark)
-
-DATABRICKS_TOKEN =dbutils.get(scope="my_secrets",key="DATABRICKS_TOKEN")
+w= Workspaceclient()
+#DATABRICKS_TOKEN =dbutils.get(scope="my_secrets",key="DATABRICKS_TOKEN")
 #DATABRICKS_TOKEN = os.getenv("DATABRICKS_TOKEN")
+ENDPOINT_NAME = "databricks-claude-sonnet-4-6"
 
-client = OpenAI(
-    api_key= DATABRICKS_TOKEN,
-    base_url="https://adb-4224005571705028.8.azuredatabricks.net/serving-endpoints"
-)  # Initialize the OpenAI client
+# client = OpenAI(
+#     api_key= DATABRICKS_TOKEN,
+#     base_url="https://adb-4224005571705028.8.azuredatabricks.net/serving-endpoints"
+# )  # Initialize the OpenAI client
 
 class AgentState(TypedDict):
     question: str
@@ -53,13 +51,14 @@ def normalize_query(state: AgentState) -> AgentState:
     {question}
     """
 
-    response = client.chat.completions.create(
-        model="databricks-claude-sonnet-4-6",
-        messages=[
+    response = w.serving_endpoints.query(
+        name =ENDPOINT_NAME,
+        inputs={
+            "messages" :[
             {"role": "system", "content": "You are a multilingual assistant."},
             {"role": "user", "content": prompt}
-        ],
-        temperature=0
+        ]
+        }
     )
 
     content = response.choices[0].message.content
@@ -97,13 +96,14 @@ def detect_visualization(state: AgentState) -> AgentState:
     User Query: {question}
     """
 
-    response = client.chat.completions.create(
-        model="databricks-claude-sonnet-4-6",
-        messages=[
+    response = w.serving_endpoints.query(
+        name =ENDPOINT_NAME,
+        inputs={
+        "messages" : [
             {"role": "system", "content": "You are a helpful assistant."},
             {"role": "user", "content": prompt}
-        ],
-        temperature=0
+        ]
+        }
     )
 
     content = response.choices[0].message.content
@@ -210,13 +210,14 @@ def generate_code(state: AgentState) -> AgentState:
     - Store the final answer in variable `result`
 """
     
-    response = client.chat.completions.create(
-    model="databricks-claude-sonnet-4-6",
-    messages=[
+    response = w.serving_endpoints.query(
+    name = ENDPOINT_NAME,
+    inputs={
+    "messages" :[
             {"role": "system", "content": "You are a helpful data analyst that writes code."},
             {"role": "user", "content": prompt}
         ],
-        temperature=0
+    }
     )
 
     state['code'] = response.choices[0].message.content
