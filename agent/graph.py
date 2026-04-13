@@ -1,6 +1,6 @@
 from typing import TypedDict
 from langgraph.graph import END, StateGraph
-from databricks.sdk import Workspaceclient
+from databricks.sdk import WorkspaceClient
 #from app import is_visualization
 from data.dataset_store import  get_df
 from executor.python_exec import execute_python
