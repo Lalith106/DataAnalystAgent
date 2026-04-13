@@ -9,7 +9,7 @@ import os
 import json
 
 
-w= Workspaceclient()
+w= WorkspaceClient()
 #DATABRICKS_TOKEN =dbutils.get(scope="my_secrets",key="DATABRICKS_TOKEN")
 #DATABRICKS_TOKEN = os.getenv("DATABRICKS_TOKEN")
 ENDPOINT_NAME = "databricks-claude-sonnet-4-6"
