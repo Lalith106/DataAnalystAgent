@@ -5,17 +5,17 @@ from data.dataset_store import set_df, clear_df
 import base64
 import re
 
-
-st.set_page_config(
-    page_title="AI Data Analyst",
-    page_icon="📊",
-)
-
+# Move session state initialization BEFORE st.set_page_config()
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
 if "file_uploaded" not in st.session_state:
     st.session_state.file_uploaded = False
+
+st.set_page_config(
+    page_title="AI Data Analyst",
+    page_icon="📊",
+)
 
 st.markdown("""
 <style>
