@@ -25,7 +25,7 @@ langchain-core==0.1.52
 langgraph ==0.0.40
 
 # Databricks integration (minimal)
-databricks-sdk==0.31.0
+databricks-sdk>=0.45.0
 
 # API (only if you use FastAPI)
 fastapi==0.110.0
