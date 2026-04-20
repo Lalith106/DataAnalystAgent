@@ -15,6 +15,84 @@ client = OpenAI(
     base_url="https://adb-4224005571705028.8.azuredatabricks.net/serving-endpoints"
 )  # Initialize the OpenAI client
 
+
+def _format_dataset_profile(summary: dict) -> str:
+    lines = [
+        f"Rows: {summary.get('rows', 0):,}",
+        f"Columns: {summary.get('columns', 0):,}",
+        f"Total cells: {summary.get('total_cells', 0):,}",
+        f"Missing cells: {summary.get('missing_cells', 0):,} ({summary.get('missing_pct', 0)}%)",
+        f"Duplicate rows: {summary.get('duplicate_rows', 0):,}",
+        f"Numeric columns: {', '.join(summary.get('numeric_cols', [])) or 'None'}",
+        f"Categorical columns: {', '.join(summary.get('categorical_cols', [])) or 'None'}",
+        f"Datetime columns: {', '.join(summary.get('datetime_cols', [])) or 'None'}",
+    ]
+
+    numeric_stats = summary.get('numeric_stats', [])[:8]
+    if numeric_stats:
+        lines.append("Numeric highlights:")
+        for item in numeric_stats:
+            lines.append(
+                f"- {item.get('column')}: min={item.get('min')}, max={item.get('max')}, "
+                f"mean={item.get('mean')}, median={item.get('median')}, nulls={item.get('nulls')}"
+            )
+
+    cat_stats = summary.get('cat_stats', [])[:8]
+    if cat_stats:
+        lines.append("Categorical highlights:")
+        for item in cat_stats:
+            lines.append(
+                f"- {item.get('column')}: unique={item.get('unique')}, top='{item.get('top')}', "
+                f"top_freq={item.get('top_freq')}, nulls={item.get('nulls')}"
+            )
+
+    date_ranges = summary.get('date_ranges', [])
+    if date_ranges:
+        lines.append("Date ranges:")
+        for item in date_ranges:
+            lines.append(f"- {item.get('column')}: {item.get('min')} to {item.get('max')}")
+
+    return "\n".join(lines)
+
+
+def generate_dataset_summary(summary: dict) -> str:
+    """
+    Generate a concise natural-language summary from a compact dataset profile.
+    """
+    profile_text = _format_dataset_profile(summary)
+
+    prompt = f"""
+    You are an expert data analyst.
+
+    Write an overall dataset summary from the dataset profile below.
+    Focus on the structure, likely use case, data quality, and any broad patterns.
+
+    Rules:
+    - Keep it concise: 3 to 5 sentences maximum.
+    - Write a generic overview of the whole dataset, not row-level commentary.
+    - Mention the dominant data types, missingness, duplicates, and whether the dataset looks tidy or needs cleanup.
+    - If the business context is unclear, say it appears to be a dataset related to a general business/operational process.
+    - Do not invent facts beyond the profile.
+    - Do not mention that you are an AI model.
+    - Do not use markdown headings or bullet points.
+
+    Dataset profile:
+    {profile_text}
+    """
+
+    response = client.chat.completions.create(
+        model="databricks-claude-sonnet-4-6",
+        messages=[
+            {"role": "system", "content": "You are a concise data analyst."},
+            {"role": "user", "content": prompt}
+        ],
+        temperature=0.2,
+    )
+
+    content = response.choices[0].message.content.strip()
+    return content
+
+
 class AgentState(TypedDict):
     question: str
     code : str

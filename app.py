@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
-from agent.graph import graph
-from data.dataset_store import set_df, clear_df
+from agent.graph import graph, generate_dataset_summary
+from data.dataset_store import set_df, clear_df, generate_summary
 import base64
 import re
 
@@ -9,6 +9,7 @@ import re
 st.set_page_config(
     page_title="AI Data Analyst",
     page_icon="📊",
+    layout="wide",
 )
 
 st.markdown("""
@@ -22,6 +23,9 @@ st.markdown("""
 /* 🧠 Main text */
 .block-container {
     color: #0f172a;
+    max-width: 100% !important;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
 }
 
 /* 📊 Headers */
@@ -50,6 +54,11 @@ h1, h2, h3 {
     background-color: white;
     border-radius: 12px;
     padding: 8px;
+}
+
+/* Make main app content span full width */
+[data-testid="stAppViewContainer"] .main {
+    max-width: 100% !important;
 }
 
 /* 💬 Chat messages */
@@ -110,29 +119,111 @@ def safe_filename(text: str, default: str = "chart") -> str:
     slug = re.sub(r"[^a-zA-Z0-9]+", "_", text).strip("_").lower()
     return slug[:60] if slug else default
 
-def data_quality_report(df):
-    st.markdown("### 📊 Data Quality Report")
+def render_dataset_overview(df, dataset_summary_text: str):
+    summary = generate_summary(df)
 
-    col1, col2, col3 = st.columns(3)
+    st.markdown(
+        """
+        <div style='
+            margin: 1rem 0 0.75rem 0;
+            padding: 1rem 1.15rem;
+            border-radius: 14px;
+            background: rgba(255,255,255,0.88);
+            border: 1px solid rgba(37,99,235,0.18);
+            box-shadow: 0 6px 18px rgba(15,23,42,0.06);
+        '>
+            <h4 style='color:#0c4a6e; margin:0 0 0.35rem 0;'>🧠 AI-generated dataset summary</h4>
+            <p style='color:#334155; margin:0;'>An overall summary built from dataset-level statistics, not just preview rows:</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.markdown(dataset_summary_text)
 
-    with col1:
-        st.metric("📋 Rows", len(df))
+    st.markdown("#### 👀 Dataset Preview")
+    st.dataframe(df.head(), use_container_width=True, hide_index=True)
 
-    with col2:
-        st.metric("📊 Columns", len(df.columns))
+    st.markdown(
+        """
+        <div style='
+            margin: 1rem 0 0.75rem 0;
+            padding: 1.1rem 1.3rem;
+            border-radius: 16px;
+            background: rgba(255,255,255,0.84);
+            border: 1px solid rgba(56,189,248,0.35);
+            box-shadow: 0 8px 22px rgba(15,23,42,0.08);
+        '>
+            <h3 style='color:#0c4a6e; margin:0 0 0.35rem 0;'>🗂️ Dataset Overview</h3>
+            <p style='color:#334155; margin:0;'>A unified snapshot of your dataset quality, structure, and key column insights.</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
-    with col3:
-        st.metric("❗ Missing Values", df.isnull().sum().sum())
+    # Full-width KPI row
+    c1, c2, c3, c4, c5, c6 = st.columns(6)
+    c1.metric("📋 Rows", f"{summary['rows']:,}")
+    c2.metric("📊 Columns", summary["columns"])
+    c3.metric("🔢 Numeric", len(summary["numeric_cols"]))
+    c4.metric("🔤 Categorical", len(summary["categorical_cols"]))
+    c5.metric("❗ Missing %", f"{summary['missing_pct']}%")
+    c6.metric("🔁 Duplicates", f"{summary['duplicate_rows']:,}")
 
-    # Column-wise nulls
-    st.markdown("#### 🧹 Missing Values by Column")
-    nulls = df.isnull().sum().reset_index()
-    nulls.columns = ["Column", "Missing Values"]
-    st.dataframe(nulls)
+    # Full-width details area
+    left, right = st.columns([1.15, 1.15], gap="large")
 
-    # Duplicate rows
-    st.markdown("#### 🔁 Duplicate Rows")
-    st.write(df.duplicated().sum())
+    with left:
+        st.markdown("#### 🧹 Missing Values by Column")
+        nulls = df.isnull().sum().reset_index()
+        nulls.columns = ["Column", "Missing Values"]
+        st.dataframe(nulls, use_container_width=True, hide_index=True)
+
+        st.markdown("#### 🔢 Numeric Column Stats")
+        if summary["numeric_stats"]:
+            num_df = pd.DataFrame(summary["numeric_stats"]).rename(columns={
+                "column": "Column", "min": "Min", "max": "Max",
+                "mean": "Mean", "median": "Median", "std": "Std Dev", "nulls": "Nulls"
+            })
+            st.dataframe(num_df, use_container_width=True, hide_index=True)
+        else:
+            st.info("No numeric columns found.")
+
+    with right:
+        st.markdown("#### 🔤 Categorical Column Overview")
+        if summary["cat_stats"]:
+            cat_df = pd.DataFrame(summary["cat_stats"]).rename(columns={
+                "column": "Column", "unique": "Unique Values",
+                "top": "Most Frequent", "top_freq": "Freq", "nulls": "Nulls"
+            })
+            st.dataframe(cat_df, use_container_width=True, hide_index=True)
+        else:
+            st.info("No categorical columns found.")
+
+        if summary["date_ranges"]:
+            st.markdown("#### 📅 Date Columns")
+            date_df = pd.DataFrame(summary["date_ranges"]).rename(columns={
+                "column": "Column", "min": "Earliest", "max": "Latest"
+            })
+            st.dataframe(date_df, use_container_width=True, hide_index=True)
+
+    st.markdown(
+        """
+        <div style='
+            margin: 0.9rem 0 0.35rem 0;
+            padding: 0.85rem 1rem;
+            border-radius: 12px;
+            background: rgba(56,189,248,0.12);
+            border-left: 4px solid #38bdf8;
+            color: #0c4a6e;
+            font-weight: 600;
+        '>
+            👇 Now use the chat below to ask questions about your data!
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
 
 def load_file(uploaded_file):
     try:
@@ -179,9 +270,20 @@ if uploaded_file is not None:
         st.success("✅ File loaded successfully")
         st.session_state.file_uploaded = True
         set_df(df)
-        st.markdown("### 📄 Dataset Preview")
-        st.dataframe(df.head())
-        data_quality_report(df)
+
+        summary_cache_key = f"dataset_summary::{uploaded_file.name}"
+        if st.session_state.get("dataset_summary_key") != summary_cache_key:
+            try:
+                st.session_state.dataset_summary_text = generate_dataset_summary(generate_summary(df))
+            except Exception as e:
+                st.session_state.dataset_summary_text = (
+                    "The dataset appears to be a structured table with a mix of numeric and categorical fields. "
+                    "Please review the preview below for the sample records and use the chat to explore the data further."
+                )
+                st.warning(f"⚠️ Could not generate AI summary: {e}")
+            st.session_state.dataset_summary_key = summary_cache_key
+
+        render_dataset_overview(df, st.session_state.dataset_summary_text)
 
 question = st.chat_input("💬 Ask Questions About Your Data")
 
