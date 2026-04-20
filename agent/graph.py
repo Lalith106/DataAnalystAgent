@@ -12,7 +12,7 @@ DATABRICKS_TOKEN = os.getenv("DATABRICKS_TOKEN")
 
 client = OpenAI(
     api_key= DATABRICKS_TOKEN,
-    base_url="https://adb-4224005571705028.8.azuredatabricks.net/serving-endpoints"
+    base_url="https://2435710707330314.ai-gateway.cloud.databricks.com/mlflow/v1"
 )  # Initialize the OpenAI client
 
 
@@ -81,7 +81,7 @@ def generate_dataset_summary(summary: dict) -> str:
     """
 
     response = client.chat.completions.create(
-        model="databricks-claude-sonnet-4-6",
+        model="databricks-llama-4-maverick",
         messages=[
             {"role": "system", "content": "You are a concise data analyst."},
             {"role": "user", "content": prompt}
@@ -126,7 +126,7 @@ def normalize_query(state: AgentState) -> AgentState:
     """
 
     response = client.chat.completions.create(
-        model="databricks-claude-sonnet-4-6",
+        model="databricks-llama-4-maverick",
         messages=[
             {"role": "system", "content": "You are a multilingual assistant."},
             {"role": "user", "content": prompt}
@@ -170,7 +170,7 @@ def detect_visualization(state: AgentState) -> AgentState:
     """
 
     response = client.chat.completions.create(
-        model="databricks-claude-sonnet-4-6",
+        model="databricks-llama-4-maverick",
         messages=[
             {"role": "system", "content": "You are a helpful assistant."},
             {"role": "user", "content": prompt}
@@ -283,7 +283,7 @@ def generate_code(state: AgentState) -> AgentState:
 """
     
     response = client.chat.completions.create(
-    model="databricks-claude-sonnet-4-6",
+    model="databricks-llama-4-maverick",
     messages=[
             {"role": "system", "content": "You are a helpful data analyst that writes code."},
             {"role": "user", "content": prompt}
@@ -335,7 +335,7 @@ def explain_result(state: AgentState) -> AgentState:
         Explain the result in simple terms."""
 
     response = client.chat.completions.create(
-    model="databricks-claude-sonnet-4-6",
+    model="databricks-llama-4-maverick",
     messages=[
             {"role": "system", "content": "You are a helpful data analyst that explains results."},
             {"role": "user", "content": prompt}
