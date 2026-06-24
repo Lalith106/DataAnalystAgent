@@ -82,7 +82,7 @@ def generate_dataset_summary(summary: dict) -> str:
     """
 
     response = client.chat.completions.create(
-        model="databricks-llama-4-maverick",
+        model="databricks-claude-sonnet-4-6",
         messages=[
             {"role": "system", "content": "You are a concise data analyst."},
             {"role": "user", "content": prompt}
