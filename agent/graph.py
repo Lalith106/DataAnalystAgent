@@ -9,10 +9,11 @@ import json
 
 
 DATABRICKS_TOKEN = os.getenv("DATABRICKS_TOKEN")
+LLM_URI = os.getenv("LLM_URI")
 
 client = OpenAI(
     api_key= DATABRICKS_TOKEN,
-    base_url="https://2435710707330314.ai-gateway.cloud.databricks.com/mlflow/v1"
+    base_url= LLM_URI
 )  # Initialize the OpenAI client
 
 
