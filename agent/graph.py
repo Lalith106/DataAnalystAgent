@@ -127,7 +127,7 @@ def normalize_query(state: AgentState) -> AgentState:
     """
 
     response = client.chat.completions.create(
-        model="databricks-llama-4-maverick",
+        model=LLM_URI,
         messages=[
             {"role": "system", "content": "You are a multilingual assistant."},
             {"role": "user", "content": prompt}
@@ -171,7 +171,7 @@ def detect_visualization(state: AgentState) -> AgentState:
     """
 
     response = client.chat.completions.create(
-        model="databricks-llama-4-maverick",
+        model=LLM_URI,
         messages=[
             {"role": "system", "content": "You are a helpful assistant."},
             {"role": "user", "content": prompt}
@@ -284,7 +284,7 @@ def generate_code(state: AgentState) -> AgentState:
 """
     
     response = client.chat.completions.create(
-    model="databricks-llama-4-maverick",
+    model=LLM_URI,
     messages=[
             {"role": "system", "content": "You are a helpful data analyst that writes code."},
             {"role": "user", "content": prompt}
@@ -336,7 +336,7 @@ def explain_result(state: AgentState) -> AgentState:
         Explain the result in simple terms."""
 
     response = client.chat.completions.create(
-    model="databricks-llama-4-maverick",
+    model=LLM_URI,
     messages=[
             {"role": "system", "content": "You are a helpful data analyst that explains results."},
             {"role": "user", "content": prompt}
